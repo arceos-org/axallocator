@@ -335,3 +335,14 @@ mod tests {
         }
     }
 }
+#[test]
+#[should_panic]
+fn test_issue_reproduction() {
+    use allocator::BitmapPageAllocator;
+    use allocator::BaseAllocator;
+    
+    let mut allocator = BitmapPageAllocator::<4096>::new();
+    let size = 256 * 1024 * 1024; // 256 MB size (max capacity)
+    let start_addr = 40960; // non-zero address
+    allocator.init(start_addr, size); // This should panic with current implementation
+}
