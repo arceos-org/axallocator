@@ -65,14 +65,22 @@ impl<const PAGE_SIZE: usize> BaseAllocator for BitmapPageAllocator<PAGE_SIZE> {
         let start = crate::align_up(start, PAGE_SIZE);
         self.total_pages = (end - start) / PAGE_SIZE;
 
-        // Calculate the base offset stored in the real [`BitAlloc`] instance.
-        self.base = crate::align_down(start, MAX_ALIGN_1GB);
-
-        // Range in bitmap: [start - self.base, start - self.base + total_pages * PAGE_SIZE)
-        let start = start - self.base;
-        let start_idx = start / PAGE_SIZE;
-
-        self.inner.insert(start_idx..start_idx + self.total_pages);
+        // Try to align base to MAX_ALIGN_1GB for best alignment support.
+        // But if this creates a gap that would exceed bitmap capacity,
+        // use the start address itself as base.
+        let aligned_base = crate::align_down(start, MAX_ALIGN_1GB);
+        let start_idx = (start - aligned_base) / PAGE_SIZE;
+        
+        if start_idx + self.total_pages <= BitAllocUsed::CAP {
+            // Use MAX_ALIGN_1GB aligned base for maximum alignment support
+            self.base = aligned_base;
+            self.inner.insert(start_idx..start_idx + self.total_pages);
+        } else {
+            // Fall back to using start as base to fit within capacity
+            // This may limit maximum alignment support, but prevents assertion failure
+            self.base = start;
+            self.inner.insert(0..self.total_pages);
+        }
     }
 
     fn add_memory(&mut self, _start: usize, _size: usize) -> AllocResult {
@@ -336,13 +344,56 @@ mod tests {
     }
 }
 #[test]
-#[should_panic]
-fn test_issue_reproduction() {
+fn test_init_nonzero_start_address() {
     use allocator::BitmapPageAllocator;
     use allocator::BaseAllocator;
+    use allocator::PageAllocator;
     
+    // Test with non-zero start address and maximum capacity
     let mut allocator = BitmapPageAllocator::<4096>::new();
-    let size = 256 * 1024 * 1024; // 256 MB size (max capacity)
-    let start_addr = 40960; // non-zero address
-    allocator.init(start_addr, size); // This should panic with current implementation
+    let size = 256 * 1024 * 1024; // 256 MB size (max capacity in default settings)
+    let start_addr = 40960; // non-zero address (10 pages)
+    
+    // This should not panic anymore
+    allocator.init(start_addr, size);
+    
+    // Verify the allocator is properly initialized
+    assert_eq!(allocator.total_pages(), size / 4096);
+    assert_eq!(allocator.used_pages(), 0);
+    assert_eq!(allocator.available_pages(), size / 4096);
+    
+    // Test basic allocation
+    let addr = allocator.alloc_pages(1, 4096).unwrap();
+    assert_eq!(addr, start_addr);
+    assert_eq!(allocator.used_pages(), 1);
+    
+    // Test deallocation
+    allocator.dealloc_pages(addr, 1);
+    assert_eq!(allocator.used_pages(), 0);
+}
+
+#[test]
+fn test_init_with_1gb_aligned_start() {
+    use allocator::BitmapPageAllocator;
+    use allocator::BaseAllocator;
+    use allocator::PageAllocator;
+    
+    const SIZE_1G: usize = 1024 * 1024 * 1024;
+    
+    // Test with 1GB-aligned start address
+    let mut allocator = BitmapPageAllocator::<4096>::new();
+    let size = 256 * 1024 * 1024; // 256 MB
+    let start_addr = SIZE_1G; // 1GB-aligned
+    
+    allocator.init(start_addr, size);
+    
+    // Should still support allocations with various alignments
+    let addr = allocator.alloc_pages(1, 4096).unwrap();
+    assert_eq!(addr, start_addr);
+    allocator.dealloc_pages(addr, 1);
+    
+    // Test with larger alignment
+    let addr = allocator.alloc_pages(1, 1024 * 1024).unwrap(); // 1MB alignment
+    assert_eq!(addr % (1024 * 1024), 0);
+    allocator.dealloc_pages(addr, 1);
 }
