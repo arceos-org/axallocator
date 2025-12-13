@@ -69,12 +69,12 @@ impl<const PAGE_SIZE: usize> BaseAllocator for BitmapPageAllocator<PAGE_SIZE> {
         // But if this creates a gap that would exceed bitmap capacity,
         // use the start address itself as base.
         let aligned_base = crate::align_down(start, MAX_ALIGN_1GB);
-        let start_idx = (start - aligned_base) / PAGE_SIZE;
+        let gap_pages = (start - aligned_base) / PAGE_SIZE;
 
-        if start_idx + self.total_pages <= BitAllocUsed::CAP {
+        if gap_pages + self.total_pages <= BitAllocUsed::CAP {
             // Use MAX_ALIGN_1GB aligned base for maximum alignment support
             self.base = aligned_base;
-            self.inner.insert(start_idx..start_idx + self.total_pages);
+            self.inner.insert(gap_pages..gap_pages + self.total_pages);
         } else {
             // Fall back to using start as base to fit within capacity
             // This may limit maximum alignment support, but prevents assertion failure
