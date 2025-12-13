@@ -342,58 +342,51 @@ mod tests {
             i += 1;
         }
     }
-}
-#[test]
-fn test_init_nonzero_start_address() {
-    use allocator::BaseAllocator;
-    use allocator::BitmapPageAllocator;
-    use allocator::PageAllocator;
 
-    // Test with non-zero start address and maximum capacity
-    let mut allocator = BitmapPageAllocator::<4096>::new();
-    let size = 256 * 1024 * 1024; // 256 MB size (max capacity in default settings)
-    let start_addr = 40960; // non-zero address (10 pages)
+    #[test]
+    fn test_init_nonzero_start_address() {
+        // Test with non-zero start address.
+        let mut allocator = BitmapPageAllocator::<PAGE_SIZE>::new();
+        let size = 4 * 1024 * 1024; // 4 MB size
+        let start_addr = 40960; // non-zero address (10 pages)
 
-    // This should not panic anymore
-    allocator.init(start_addr, size);
+        // This should not panic anymore with the fix
+        allocator.init(start_addr, size);
 
-    // Verify the allocator is properly initialized
-    assert_eq!(allocator.total_pages(), size / 4096);
-    assert_eq!(allocator.used_pages(), 0);
-    assert_eq!(allocator.available_pages(), size / 4096);
+        // Verify the allocator is properly initialized
+        assert_eq!(allocator.total_pages(), size / PAGE_SIZE);
+        assert_eq!(allocator.used_pages(), 0);
+        assert_eq!(allocator.available_pages(), size / PAGE_SIZE);
 
-    // Test basic allocation
-    let addr = allocator.alloc_pages(1, 4096).unwrap();
-    assert_eq!(addr, start_addr);
-    assert_eq!(allocator.used_pages(), 1);
+        // Test basic allocation
+        let addr = allocator.alloc_pages(1, PAGE_SIZE).unwrap();
+        assert_eq!(addr, start_addr);
+        assert_eq!(allocator.used_pages(), 1);
 
-    // Test deallocation
-    allocator.dealloc_pages(addr, 1);
-    assert_eq!(allocator.used_pages(), 0);
-}
+        // Test deallocation
+        allocator.dealloc_pages(addr, 1);
+        assert_eq!(allocator.used_pages(), 0);
+    }
 
-#[test]
-fn test_init_with_1gb_aligned_start() {
-    use allocator::BaseAllocator;
-    use allocator::BitmapPageAllocator;
-    use allocator::PageAllocator;
+    #[test]
+    fn test_init_with_1gb_aligned_start() {
+        const SIZE_1G: usize = 1024 * 1024 * 1024;
 
-    const SIZE_1G: usize = 1024 * 1024 * 1024;
+        // Test with 1GB-aligned start address
+        let mut allocator = BitmapPageAllocator::<PAGE_SIZE>::new();
+        let size = 4 * 1024 * 1024; // 4 MB
+        let start_addr = SIZE_1G; // 1GB-aligned
 
-    // Test with 1GB-aligned start address
-    let mut allocator = BitmapPageAllocator::<4096>::new();
-    let size = 256 * 1024 * 1024; // 256 MB
-    let start_addr = SIZE_1G; // 1GB-aligned
+        allocator.init(start_addr, size);
 
-    allocator.init(start_addr, size);
+        // Should still support allocations with various alignments
+        let addr = allocator.alloc_pages(1, PAGE_SIZE).unwrap();
+        assert_eq!(addr, start_addr);
+        allocator.dealloc_pages(addr, 1);
 
-    // Should still support allocations with various alignments
-    let addr = allocator.alloc_pages(1, 4096).unwrap();
-    assert_eq!(addr, start_addr);
-    allocator.dealloc_pages(addr, 1);
-
-    // Test with larger alignment
-    let addr = allocator.alloc_pages(1, 1024 * 1024).unwrap(); // 1MB alignment
-    assert_eq!(addr % (1024 * 1024), 0);
-    allocator.dealloc_pages(addr, 1);
+        // Test with larger alignment
+        let addr = allocator.alloc_pages(1, 1024 * 1024).unwrap(); // 1MB alignment
+        assert_eq!(addr % (1024 * 1024), 0);
+        allocator.dealloc_pages(addr, 1);
+    }
 }
