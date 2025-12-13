@@ -70,7 +70,7 @@ impl<const PAGE_SIZE: usize> BaseAllocator for BitmapPageAllocator<PAGE_SIZE> {
         // use the start address itself as base.
         let aligned_base = crate::align_down(start, MAX_ALIGN_1GB);
         let start_idx = (start - aligned_base) / PAGE_SIZE;
-        
+
         if start_idx + self.total_pages <= BitAllocUsed::CAP {
             // Use MAX_ALIGN_1GB aligned base for maximum alignment support
             self.base = aligned_base;
@@ -345,28 +345,28 @@ mod tests {
 }
 #[test]
 fn test_init_nonzero_start_address() {
-    use allocator::BitmapPageAllocator;
     use allocator::BaseAllocator;
+    use allocator::BitmapPageAllocator;
     use allocator::PageAllocator;
-    
+
     // Test with non-zero start address and maximum capacity
     let mut allocator = BitmapPageAllocator::<4096>::new();
     let size = 256 * 1024 * 1024; // 256 MB size (max capacity in default settings)
     let start_addr = 40960; // non-zero address (10 pages)
-    
+
     // This should not panic anymore
     allocator.init(start_addr, size);
-    
+
     // Verify the allocator is properly initialized
     assert_eq!(allocator.total_pages(), size / 4096);
     assert_eq!(allocator.used_pages(), 0);
     assert_eq!(allocator.available_pages(), size / 4096);
-    
+
     // Test basic allocation
     let addr = allocator.alloc_pages(1, 4096).unwrap();
     assert_eq!(addr, start_addr);
     assert_eq!(allocator.used_pages(), 1);
-    
+
     // Test deallocation
     allocator.dealloc_pages(addr, 1);
     assert_eq!(allocator.used_pages(), 0);
@@ -374,24 +374,24 @@ fn test_init_nonzero_start_address() {
 
 #[test]
 fn test_init_with_1gb_aligned_start() {
-    use allocator::BitmapPageAllocator;
     use allocator::BaseAllocator;
+    use allocator::BitmapPageAllocator;
     use allocator::PageAllocator;
-    
+
     const SIZE_1G: usize = 1024 * 1024 * 1024;
-    
+
     // Test with 1GB-aligned start address
     let mut allocator = BitmapPageAllocator::<4096>::new();
     let size = 256 * 1024 * 1024; // 256 MB
     let start_addr = SIZE_1G; // 1GB-aligned
-    
+
     allocator.init(start_addr, size);
-    
+
     // Should still support allocations with various alignments
     let addr = allocator.alloc_pages(1, 4096).unwrap();
     assert_eq!(addr, start_addr);
     allocator.dealloc_pages(addr, 1);
-    
+
     // Test with larger alignment
     let addr = allocator.alloc_pages(1, 1024 * 1024).unwrap(); // 1MB alignment
     assert_eq!(addr % (1024 * 1024), 0);
