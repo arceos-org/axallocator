@@ -65,22 +65,28 @@ impl<const PAGE_SIZE: usize> BaseAllocator for BitmapPageAllocator<PAGE_SIZE> {
         let start = crate::align_up(start, PAGE_SIZE);
         self.total_pages = (end - start) / PAGE_SIZE;
 
-        // Try to align base to MAX_ALIGN_1GB for best alignment support.
-        // But if this creates a gap that would exceed bitmap capacity,
-        // use the start address itself as base.
-        let aligned_base = crate::align_down(start, MAX_ALIGN_1GB);
-        let gap_pages = (start - aligned_base) / PAGE_SIZE;
+        // Calculate the base offset stored in the real [`BitAlloc`] instance.
+        // The base must be aligned to MAX_ALIGN_1GB to support maximum alignment.
+        self.base = crate::align_down(start, MAX_ALIGN_1GB);
 
-        if gap_pages + self.total_pages <= BitAllocUsed::CAP {
-            // Use MAX_ALIGN_1GB aligned base for maximum alignment support
-            self.base = aligned_base;
-            self.inner.insert(gap_pages..gap_pages + self.total_pages);
-        } else {
-            // Fall back to using start as base to fit within capacity
-            // This may limit maximum alignment support, but prevents assertion failure
-            self.base = start;
-            self.inner.insert(0..self.total_pages);
-        }
+        // Range in bitmap: [start - self.base, start - self.base + total_pages * PAGE_SIZE)
+        let start_idx = (start - self.base) / PAGE_SIZE;
+        let end_idx = start_idx + self.total_pages;
+
+        // Panic if the bitmap capacity is insufficient for the requested range.
+        // This can happen when:
+        // 1. The size is too large for the bitmap capacity
+        // 2. The start address is not aligned well, creating a large gap
+        assert!(
+            end_idx <= BitAllocUsed::CAP,
+            "bitmap capacity exceeded: need {} pages but CAP is {} (start={:#x}, size={:#x})",
+            end_idx,
+            BitAllocUsed::CAP,
+            start,
+            size
+        );
+
+        self.inner.insert(start_idx..end_idx);
     }
 
     fn add_memory(&mut self, _start: usize, _size: usize) -> AllocResult {
@@ -345,12 +351,13 @@ mod tests {
 
     #[test]
     fn test_init_nonzero_start_address() {
-        // Test with non-zero start address.
+        // Test with non-zero start address that fits within capacity.
+        // With BitAlloc1M in test mode (CAP = 1M pages = 4GB), a small offset
+        // and 4MB allocation should work fine.
         let mut allocator = BitmapPageAllocator::<PAGE_SIZE>::new();
         let size = 4 * 1024 * 1024; // 4 MB size
-        let start_addr = 40960; // non-zero address (10 pages)
+        let start_addr = 40960; // non-zero address (10 pages offset from 0)
 
-        // This should not panic anymore with the fix
         allocator.init(start_addr, size);
 
         // Verify the allocator is properly initialized
@@ -388,5 +395,22 @@ mod tests {
         let addr = allocator.alloc_pages(1, 1024 * 1024).unwrap(); // 1MB alignment
         assert_eq!(addr % (1024 * 1024), 0);
         allocator.dealloc_pages(addr, 1);
+    }
+
+    #[test]
+    #[should_panic(expected = "bitmap capacity exceeded")]
+    fn test_init_capacity_exceeded() {
+        // Test that init panics when the required range exceeds bitmap capacity.
+        // In test mode, BitAlloc1M has CAP = 1M pages = 4GB.
+        // With a start address that creates a 1GB gap (due to alignment) and
+        // requesting 4GB allocation, we need 1GB/4KB + 4GB/4KB = 256K + 1M = ~1.25M pages,
+        // which exceeds the 1M capacity.
+        let mut allocator = BitmapPageAllocator::<PAGE_SIZE>::new();
+        let size = 4 * 1024 * 1024 * 1024; // 4 GB - at capacity limit
+        let start_addr = PAGE_SIZE; // Small offset causes 1GB gap when aligned down to 1GB boundary
+
+        // This should panic because start is aligned down to 0, creating gap of 1 page,
+        // and 4GB = 1M pages, total = 1M + 1 which exceeds CAP of 1M
+        allocator.init(start_addr, size);
     }
 }
