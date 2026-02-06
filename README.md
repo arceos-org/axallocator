@@ -1,0 +1,34 @@
+# axallocator
+
+Various allocator algorithms behind a unified interface for `no_std` environments.
+
+## Allocator types
+
+- **Byte-granularity**: [`BuddyByteAllocator`], [`SlabByteAllocator`], [`TlsfByteAllocator`]
+- **Page-granularity**: [`BitmapPageAllocator`]
+- **ID allocator**: [`IdAllocator`]
+
+## Features
+
+| Feature        | Description                    |
+|----------------|--------------------------------|
+| `bitmap`       | Bitmap-based page allocator    |
+| `tlsf`         | TLSF byte allocator            |
+| `slab`         | Slab byte allocator (uses `ax_slab_allocator`) |
+| `buddy`        | Buddy byte allocator           |
+| `allocator_api`| Implement `Allocator` (nightly)|
+| `page-alloc-*` | Page size / range (e.g. `page-alloc-256m`)   |
+| `axerrno`      | `AxError` integration         |
+
+Default: `page-alloc-256m`. Use `full` for all allocators and `allocator_api`.
+
+## Usage
+
+```toml
+[dependencies]
+axallocator = { version = "0.1", features = ["slab", "buddy"] }
+```
+
+## License
+
+GPL-3.0-or-later OR Apache-2.0 OR MulanPSL-2.0. See [LICENSE](LICENSE).
