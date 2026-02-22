@@ -1,8 +1,11 @@
 [package]
 name = "axallocator"
-version = "0.1.3-preview.1"
+version = "0.2.0"
 edition = "2021"
-authors = ["Yuekai Jia <equation618@gmail.com>", "Yu Chen <yuchen@tsinghua.edu.cn>"]
+authors = [
+    "Yuekai Jia <equation618@gmail.com>",
+    "Yu Chen <yuchen@tsinghua.edu.cn>",
+]
 description = "Various allocator algorithms in a unified interface"
 license = "GPL-3.0-or-later OR Apache-2.0 OR MulanPSL-2.0"
 homepage = "https://github.com/arceos-org/arceos"
@@ -34,7 +37,7 @@ axerrno = { version = "0.1", optional = true }
 cfg-if = "1.0"
 rlsf = { version = "0.2", optional = true }
 buddy_system_allocator = { version = "0.10", default-features = false, optional = true }
-ax_slab_allocator = { version = "0.3.2-preview.1", optional = true }
+ax_slab_allocator = { version = "0.4", optional = true }
 bitmap-allocator = { version = "0.2", optional = true }
 
 [dev-dependencies]
