@@ -2,10 +2,11 @@
 //!
 //! TODO: comments
 
-use super::{AllocError, AllocResult, BaseAllocator, ByteAllocator};
+use ax_slab_allocator::Heap;
 use core::alloc::Layout;
 use core::ptr::NonNull;
-use ax_slab_allocator::Heap;
+
+use super::{AllocError, AllocResult, BaseAllocator, ByteAllocator};
 
 /// A byte-granularity memory allocator based on the [slab allocator].
 ///
