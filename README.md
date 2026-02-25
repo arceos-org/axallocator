@@ -1,5 +1,9 @@
 # axallocator
 
+[![Crates.io](https://img.shields.io/crates/v/axallocator.svg?style=flat-square)](https://crates.io/crates/axallocator)
+[![Documentation](https://docs.rs/axallocator/badge.svg?style=flat-square)](https://docs.rs/axallocator)
+[![License](https://img.shields.io/crates/l/axallocator.svg?style=flat-square)](https://crates.io/crates/axallocator)
+
 Various allocator algorithms behind a unified interface for `no_std` environments.
 
 ## Allocator types
@@ -10,15 +14,15 @@ Various allocator algorithms behind a unified interface for `no_std` environment
 
 ## Features
 
-| Feature        | Description                    |
-|----------------|--------------------------------|
-| `bitmap`       | Bitmap-based page allocator    |
-| `tlsf`         | TLSF byte allocator            |
-| `slab`         | Slab byte allocator (uses `ax_slab_allocator`) |
-| `buddy`        | Buddy byte allocator           |
-| `allocator_api`| Implement `Allocator` (nightly)|
-| `page-alloc-*` | Page size / range (e.g. `page-alloc-256m`)   |
-| `axerrno`      | `AxError` integration         |
+| Feature         | Description                                    |
+| --------------- | ---------------------------------------------- |
+| `bitmap`        | Bitmap-based page allocator                    |
+| `tlsf`          | TLSF byte allocator                            |
+| `slab`          | Slab byte allocator (uses `ax_slab_allocator`) |
+| `buddy`         | Buddy byte allocator                           |
+| `allocator_api` | Implement `Allocator` (nightly)                |
+| `page-alloc-*`  | Page size / range (e.g. `page-alloc-256m`)     |
+| `axerrno`       | `AxError` integration                          |
 
 Default: `page-alloc-256m`. Use `full` for all allocators and `allocator_api`.
 
@@ -26,7 +30,7 @@ Default: `page-alloc-256m`. Use `full` for all allocators and `allocator_api`.
 
 ```toml
 [dependencies]
-axallocator = { version = "0.1", features = ["slab", "buddy"] }
+axallocator = { version = "0.2", features = ["slab", "buddy"] }
 ```
 
 ## License
