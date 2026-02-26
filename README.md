@@ -12,6 +12,12 @@ Various allocator algorithms behind a unified interface for `no_std` environment
 - **Page-granularity**: [`BitmapPageAllocator`]
 - **ID allocator**: [`IdAllocator`]
 
+[`BuddyByteAllocator`]: https://docs.rs/axallocator/latest/axallocator/struct.BuddyByteAllocator.html
+[`SlabByteAllocator`]: https://docs.rs/axallocator/latest/axallocator/struct.SlabByteAllocator.html
+[`TlsfByteAllocator`]: https://docs.rs/axallocator/latest/axallocator/struct.TlsfByteAllocator.html
+[`BitmapPageAllocator`]: https://docs.rs/axallocator/latest/axallocator/struct.BitmapPageAllocator.html
+[`IdAllocator`]: https://docs.rs/axallocator/latest/axallocator/trait.IdAllocator.html
+
 ## Features
 
 | Feature         | Description                                    |
