@@ -4,7 +4,10 @@ use bitmap_allocator::BitAlloc;
 
 use crate::{AllocError, AllocResult, BaseAllocator, PageAllocator};
 
-const MAX_ALIGN_1GB: usize = 0x4000_0000;
+#[cfg(target_pointer_width = "64")]
+const MAX_ALIGN_1GB: usize = 0x4000_0000; // 1 GB alignment for 64-bit targets
+#[cfg(target_pointer_width = "32")]
+const MAX_ALIGN_1GB: usize = 0x2000_0000; // 512 MB alignment for 32-bit targets (fits embedded SRAM at 0x2000_0000)
 
 cfg_if::cfg_if! {
     if #[cfg(test)] {
